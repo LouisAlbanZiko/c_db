@@ -10,6 +10,7 @@ typedef struct _CD_Attribute
 	uint64_t type;
 	uint64_t count;
 	uint64_t offset;
+	uint64_t constraints;
 	char name[256];
 } _CD_Attribute;
 

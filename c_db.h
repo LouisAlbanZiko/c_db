@@ -26,10 +26,15 @@ typedef enum CD_AttributeType
 uint64_t cd_attribute_type_size(CD_AttributeType type);
 uint64_t cd_attribute_size(CD_AttributeType type, uint64_t count);
 
+#define CD_CONSTRAINT_NONE 		0
+#define CD_CONSTRAINT_NOT_NULL	0b01
+#define CD_CONSTRAINT_UNIQUE	0b10
+
 typedef struct CD_Attribute
 {
 	uint64_t type;
 	uint64_t count;
+	uint64_t constraints;
 	char name[256];
 } CD_Attribute;
 
@@ -38,7 +43,7 @@ typedef struct CD_Database CD_Database;
 CD_Database *cd_database_open(CC_String name);
 void cd_database_close(CD_Database *db);
 uint64_t cd_table_create(CD_Database *db, CC_String table_name, uint64_t attribute_count, CD_Attribute *attributes);
-uint64_t cd_table_insert(CD_Database *db, CC_String table_name, uint64_t attribute_count, char *attribute_names[256], const void *data);
+uint64_t cd_table_insert(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[256], const void *data);
 
 typedef struct CD_TableView
 {
@@ -49,7 +54,28 @@ typedef struct CD_TableView
 	void *data;
 } CD_TableView;
 
-CD_TableView *cd_table_select(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[256], const char comparison_name[256], const void *comparison_data);
+CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[256]);
+void cd_table_view_destroy(CD_TableView *view);
+
+void *cd_table_view_get_next_row(CD_TableView *view);
+
+typedef enum CD_ConditionOperator
+{
+	CD_CONDITION_OPERATOR_EQUALS = 0,
+	CD_CONDITION_OPERATOR_DIFFERENT,
+	CD_CONDITION_OPERATOR_BIGGER,
+	CD_CONDITION_OPERATOR_SMALLER,
+	CD_CONDITION_OPERATOR_CONTAINS
+} CD_ConditionOperator;
+
+typedef struct CD_Condition
+{
+	char name[256];
+	uint64_t operator;
+	const void *data;
+} CD_Condition;
+
+CD_TableView *cd_table_select(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[256], uint64_t condition_count, CD_Condition *conditions);
 
 // error
 typedef struct CD_Error
@@ -66,8 +92,9 @@ typedef enum CD_ErrorType
 	CD_ERROR_TABLE_DOES_NOT_EXIST,
 	CD_ERROR_ATTRIBUTE_EXISTS,
 	CD_ERROR_ATTRIBUTE_DOES_NOT_EXIST,
-	CD_ERROR_PRIMARY_KEY_NOT_SPECIFIED,
-	CD_ERROR_PRIMARY_KEY_IS_UNIQUE
+	CD_ERROR_ATTRIBUTE_IS_NOT_NULL,
+	CD_ERROR_ATTRIBUTE_IS_UNIQUE,
+	CD_ERROR_UNKNOWN_OPERATOR
 } CD_ErrorType;
 
 CD_Error cd_get_last_error();

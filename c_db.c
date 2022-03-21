@@ -3,7 +3,7 @@
 CD_Database *cd_database_open(CC_String _db_name)
 {
 	CD_Database *db = NULL;
-	
+
 	CC_String db_name = cc_string_copy(_db_name);
 
 	CC_String schema_file_path;
@@ -125,10 +125,9 @@ CD_Database *cd_database_open(CC_String _db_name)
 		}
 
 		CC_String table_name =
-		{
-			.data = table_data.name,
-			.length = strlen(table_data.name)
-		};
+			{
+				.data = table_data.name,
+				.length = strlen(table_data.name)};
 
 		CC_String table_file_path;
 		{
@@ -173,21 +172,20 @@ CD_Database *cd_database_open(CC_String _db_name)
 		}
 
 		CD_Table table =
-		{
-			.name = cc_string_copy(table_name),
-			.file_path = table_file_path,
+			{
+				.name = cc_string_copy(table_name),
+				.file_path = table_file_path,
 
-			.stride = 0,
-			.attribute_indices = cc_hash_map_create(sizeof(uint64_t), table_data.attrib_count_c),
-			.attributes = malloc(sizeof(_CD_Attribute) * table_data.attrib_count_c),
+				.stride = 0,
+				.attribute_indices = cc_hash_map_create(sizeof(uint64_t), table_data.attrib_count_c),
+				.attributes = malloc(sizeof(_CD_Attribute) * table_data.attrib_count_c),
 
-			.attribute_count_view = table_data_view,
-			.attributes_view = table_attributes_view,
+				.attribute_count_view = table_data_view,
+				.attributes_view = table_attributes_view,
 
-			.data_file = table_file,
-			.data_count_view = data_count_view,
-			.data_view = NULL
-		};
+				.data_file = table_file,
+				.data_count_view = data_count_view,
+				.data_view = NULL};
 
 		// for load attributes
 		for (uint64_t attrib_index = 0; attrib_index < table_data.attrib_count_c; attrib_index++)
@@ -202,18 +200,18 @@ CD_Database *cd_database_open(CC_String _db_name)
 			}
 
 			CC_String attribute_name =
-			{
-				.data = attribute.name,
-				.length = strlen(attribute.name)
-			};
+				{
+					.data = attribute.name,
+					.length = strlen(attribute.name)};
 
 			_CD_Attribute _attribute =
-			{
-				.count = attribute.count,
-				.offset = table.stride,
-				.type = attribute.type
-			};
-			strcpy(_attribute.name, attribute.name);
+				{
+					.count = attribute.count,
+					.offset = table.stride,
+					.type = attribute.type,
+					.constraints = attribute.constraints};
+			memset(_attribute.name, 0, 256);
+			strcpy_s(_attribute.name, 256, attribute.name);
 
 			table.attributes[attrib_index] = _attribute;
 
@@ -292,7 +290,7 @@ schema_file_path_destroy:
 	{
 		cc_string_destroy(schema_file_path);
 	}
-db_name_destroy:
+//db_name_destroy:
 	if (db == NULL)
 	{
 		cc_string_destroy(db_name);
@@ -334,24 +332,23 @@ void cd_database_close(CD_Database *db)
 uint64_t cd_table_create(CD_Database *db, CC_String _table_name, uint64_t attribute_count, CD_Attribute *attributes)
 {
 	CD_Table table =
-	{
-		.name = cc_string_copy(_table_name),
-		.file_path = {
-			.data = NULL,
-			.length = 0
-		},
+		{
+			.name = cc_string_copy(_table_name),
+			.file_path = {
+				.data = NULL,
+				.length = 0},
 
-		.stride = 0,
-		.attribute_indices = cc_hash_map_create(sizeof(uint64_t), attribute_count),
-		.attributes = malloc(sizeof(_CD_Attribute) * attribute_count),
+			.stride = 0,
+			.attribute_indices = cc_hash_map_create(sizeof(uint64_t), attribute_count),
+			.attributes = malloc(sizeof(_CD_Attribute) * attribute_count),
 
-		.attribute_count_view = NULL,
-		.attributes_view = NULL,
+			.attribute_count_view = NULL,
+			.attributes_view = NULL,
 
-		.data_file = NULL,
-		.data_count_view = NULL,
-		.data_view = NULL,
-	};
+			.data_file = NULL,
+			.data_count_view = NULL,
+			.data_view = NULL,
+		};
 
 	// table.file_path
 	{
@@ -373,25 +370,24 @@ uint64_t cd_table_create(CD_Database *db, CC_String _table_name, uint64_t attrib
 		goto table_destroy_1;
 	}
 
-	// insert attributes into hash map and 
+	// insert attributes into hash map and
 	for (uint64_t i = 0; i < attribute_count; i++)
 	{
 		CD_Attribute *attrib = attributes + i;
 
 		CC_String attribute_name =
-		{
-			.data = attrib->name,
-			.length = strlen(attrib->name)
-		};
+			{
+				.data = attrib->name,
+				.length = strlen(attrib->name)};
 
 		_CD_Attribute _attrib =
-		{
-			.count = attrib->count,
-			.offset = table.stride,
-			.type = attrib->type
-		};
-
-		strcpy(_attrib.name, attrib->name);
+			{
+				.count = attrib->count,
+				.offset = table.stride,
+				.type = attrib->type,
+				.constraints = attrib->constraints};
+		memset(_attrib.name, 0, 256);
+		strcpy_s(_attrib.name, 256, attrib->name);
 
 		table.attributes[i] = _attrib;
 
@@ -413,12 +409,10 @@ uint64_t cd_table_create(CD_Database *db, CC_String _table_name, uint64_t attrib
 	// increase size of schema file and write data
 	{
 		_CD_TableSchemaData table_schema_data =
-		{
-			.attrib_count_c = attribute_count,
-			.attrib_count_m = attribute_count
-		};
+			{
+				.attrib_count_c = attribute_count,
+				.attrib_count_m = attribute_count};
 		strcpy_s(table_schema_data.name, sizeof(table_schema_data.name), table.name.data);
-
 
 		// resize file
 		uint64_t file_size_c = cf_file_size_get(db->schema_file);
@@ -430,7 +424,7 @@ uint64_t cd_table_create(CD_Database *db, CC_String _table_name, uint64_t attrib
 
 		// open attrib count view
 		table.attribute_count_view = cf_file_view_open(db->schema_file, file_size_c, sizeof(_CD_TableSchemaData));
-		if(table.attribute_count_view == NULL)
+		if (table.attribute_count_view == NULL)
 		{
 			_cd_make_error(CD_ERROR_FILE, "Failed to open attribute count view for file '%s' and table '%s'", db->schema_file_path.data, table.name);
 			goto table_destroy_1;
@@ -462,10 +456,9 @@ uint64_t cd_table_create(CD_Database *db, CC_String _table_name, uint64_t attrib
 	// table file
 	{
 		_CD_TableCount table_count =
-		{
-			.count_c = 0,
-			.count_m = 32
-		};
+			{
+				.count_c = 0,
+				.count_m = 32};
 
 		// create table file
 		if (!cf_file_create(table.file_path, sizeof(_CD_TableCount) + table.stride * table_count.count_m))
@@ -504,7 +497,6 @@ uint64_t cd_table_create(CD_Database *db, CC_String _table_name, uint64_t attrib
 			_cd_make_error(CD_ERROR_FILE, "Failed to write data count to file '%s'.", table.file_path.data);
 			goto data_view_close;
 		}
-
 	}
 
 	cc_hash_map_insert(db->tables, table.name, &table);
@@ -530,7 +522,7 @@ table_destroy_1:
 	return 0;
 }
 
-uint64_t cd_table_insert(CD_Database *db, CC_String _table_name, uint64_t attribute_count, char *attribute_names[256], const void *data)
+uint64_t cd_table_insert(CD_Database *db, CC_String _table_name, uint64_t attribute_count, const char *attribute_names[256], const void *data)
 {
 	uint64_t return_value = 0;
 
@@ -563,12 +555,11 @@ uint64_t cd_table_insert(CD_Database *db, CC_String _table_name, uint64_t attrib
 	for (uint64_t i = 0; i < attribute_count; i++)
 	{
 		CC_String attrib_name =
-		{
-			.data = attribute_names[i],
-			.length = strlen(attribute_names[i])
-		};
+			{
+				.data = attribute_names[i],
+				.length = strlen(attribute_names[i])};
 
-		uint64_t *index_ptr = (uint64_t *)cc_hash_map_lookup(table->attribute_indices, attrib_name);
+		const uint64_t *index_ptr = (const uint64_t *)cc_hash_map_lookup(table->attribute_indices, attrib_name);
 
 		if (index_ptr == NULL)
 		{
@@ -587,51 +578,81 @@ uint64_t cd_table_insert(CD_Database *db, CC_String _table_name, uint64_t attrib
 		data_stride += attribute_data[i].size;
 	}
 
-	// check if primary key already exists
+
+	// check constrains
+	for (uint64_t table_attrib_index = 0; table_attrib_index < cc_hash_map_count(table->attribute_indices); table_attrib_index++)
 	{
-		// find primary key in attribute_names
-		uint64_t primary_key_index = attribute_count;
-		printf("primary_key = %s\n", table->attributes[0].name);
-		for (uint64_t i = 0; i < attribute_count; i++)
+		_CD_Attribute *attrib = table->attributes + table_attrib_index;
+		
+		// check not null
+		uint64_t not_null = attrib->constraints & CD_CONSTRAINT_NOT_NULL;
+		if (not_null)
 		{
-			if (strcmp(attribute_names[i], table->attributes[0].name) == 0)
+			uint64_t attrib_index = attribute_count;
+			for (uint64_t i = 0; i < attribute_count; i++)
 			{
-				primary_key_index = i;
-				break;
+				if (strcmp(attribute_names[i], table->attributes[table_attrib_index].name) == 0)
+				{
+					attrib_index = i;
+					break;
+				}
+			}
+			if (attrib_index == attribute_count)
+			{
+				_cd_make_error(CD_ERROR_ATTRIBUTE_IS_NOT_NULL, "Attribute '%s' is NOT NULL and so needs to have a value when inserting a record. table: '%s'", table->attributes[table_attrib_index].name, table->name.data);
+				goto attribute_data_free;
 			}
 		}
-		if (primary_key_index == attribute_count)
+	}
+
+	// check unique
+	for(uint64_t attrib_index = 0; attrib_index < attribute_count; attrib_index++)
+	{
+		CC_String attrib_name = 
 		{
-			_cd_make_error(CD_ERROR_PRIMARY_KEY_NOT_SPECIFIED, "A primary key needs to have a value when inserting a record. table: '%s'", table->name.data);
+			.data = attribute_names[attrib_index],
+			.length = strlen(attribute_names[attrib_index])
+		};
+
+		const uint64_t *table_attrib_index = cc_hash_map_lookup(table->attribute_indices, attrib_name);
+		if(table_attrib_index == NULL)
+		{
+			_cd_make_error(CD_ERROR_ATTRIBUTE_DOES_NOT_EXIST, "Attribute '%s' does not exist in table '%s'", attribute_names[attrib_index], table->name.data);
 			goto attribute_data_free;
 		}
 
-		uint64_t _error = 0;
-
-		void *primary_key_data = malloc(attribute_data[primary_key_index].size);
-
-		for (uint64_t i = 0; i < table_count.count_c; i++)
+		_CD_Attribute *attrib = table->attributes + (*table_attrib_index);
+		uint64_t unique = attrib->constraints & CD_CONSTRAINT_UNIQUE;
+		
+		if(unique)
 		{
-			if (!cf_file_view_read(table->data_view, attribute_data[primary_key_index].file_offset + i * table->stride, attribute_data[primary_key_index].size, primary_key_data))
+			uint64_t _error = 0;
+
+			void *buffer = malloc(attribute_data[attrib_index].size);
+
+			for(uint64_t row = 0; row < table_count.count_c; row++)
 			{
-				_cd_make_error(CD_ERROR_FILE, "Failed to read primary key at index %llu from table '%s'", i, table->name.data);
-				_error = 1;
-				goto primary_key_data_free;
+				if(!cf_file_view_read(table->data_view, attribute_data[attrib_index].file_offset + row * table->stride, attribute_data[attrib_index].size, buffer))
+				{
+					_cd_make_error(CD_ERROR_FILE, "Failed to read primary key at row %llu from table '%s'", row, table->name.data);
+					_error = 1;
+					goto buffer_free;
+				}
+
+				if(memcmp((uint8_t *)data + attribute_data[attrib_index].data_offset, buffer, attribute_data[attrib_index].size) == 0)
+				{
+					_cd_make_error(CD_ERROR_ATTRIBUTE_IS_UNIQUE, "Attribute '%s' is UNIQUE and is already in the table '%s' at row %llu", attribute_names[attrib_index], table->name.data, row);
+					_error = 1;
+					goto buffer_free;
+				}
 			}
 
-			if (memcmp((uint8_t *)data + attribute_data[primary_key_index].data_offset, primary_key_data, attribute_data[primary_key_index].size) == 0)
+		buffer_free:
+			free(buffer);
+			if (_error)
 			{
-				_cd_make_error(CD_ERROR_PRIMARY_KEY_IS_UNIQUE, "Primary key value is already in the table '%s' at index %llu", table->name.data, i);
-				_error = 1;
-				goto primary_key_data_free;
+				goto attribute_data_free;
 			}
-		}
-
-	primary_key_data_free:
-		free(primary_key_data);
-		if (_error)
-		{
-			goto attribute_data_free;
 		}
 	}
 
@@ -647,7 +668,7 @@ uint64_t cd_table_insert(CD_Database *db, CC_String _table_name, uint64_t attrib
 		}
 
 		cf_file_view_close(table->data_view);
-		
+
 		table->data_view = cf_file_view_open(table->data_file, sizeof(table_count), table_count.count_m * table->stride);
 		if (table->data_view == NULL)
 		{
@@ -689,7 +710,7 @@ table_name_destroy:
 	return return_value;
 }
 
-CD_TableView *cd_table_select(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[256], const char comparison_name[256], const void *comparison_data)
+CD_TableView *cd_table_select(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[256], uint64_t condition_count, CD_Condition *conditions)
 {
 	// get table
 	CD_Table *table = (CD_Table *)cc_hash_map_lookup(db->tables, table_name);
@@ -713,23 +734,18 @@ CD_TableView *cd_table_select(CD_Database *db, CC_String table_name, uint64_t at
 		uint64_t size;
 	} *attribute_data = malloc(sizeof(attribute_data[0]) * attribute_count);
 
+	CD_TableView *table_view = cd_table_view_create(db, table_name, attribute_count, attribute_names);
 
-	CD_TableView *table_view = malloc(sizeof(*table_view));
-
-	table_view->count_c = 0;
-	table_view->count_m = 32;
-	table_view->stride = 0;
-	table_view->attributes = malloc(sizeof(table_view->attributes[0]) * attribute_count);
+	uint64_t offset = 0;
 
 	for (uint64_t i = 0; i < attribute_count; i++)
 	{
 		CC_String attrib_name =
-		{
-			.data = attribute_names[i],
-			.length = strlen(attribute_names[i])
-		};
+			{
+				.data = attribute_names[i],
+				.length = strlen(attribute_names[i])};
 
-		uint64_t *index_ptr = (uint64_t *)cc_hash_map_lookup(table->attribute_indices, attrib_name);
+		const uint64_t *index_ptr = (const uint64_t *)cc_hash_map_lookup(table->attribute_indices, attrib_name);
 
 		if (index_ptr == NULL)
 		{
@@ -741,83 +757,156 @@ CD_TableView *cd_table_select(CD_Database *db, CC_String table_name, uint64_t at
 
 		_CD_Attribute *attribute = table->attributes + index;
 
-		attribute_data[i].data_offset = table_view->stride;
+		attribute_data[i].data_offset = offset;
 		attribute_data[i].file_offset = attribute->offset;
 		attribute_data[i].size = cd_attribute_size(attribute->type, attribute->count);
 
-		table_view->attributes[i].count = attribute->count;
-		table_view->attributes[i].type = attribute->type;
-		strcpy(table_view->attributes[i].name, attribute->name);
-
-		table_view->stride += attribute_data[i].size;
+		offset += attribute_data[i].size;
 	}
 
-	table_view->data = malloc(table_view->count_m * table_view->stride);
+	uint8_t *should_add_row = malloc(sizeof(*should_add_row) * table_count.count_c);
+	for(uint64_t row = 0; row < table_count.count_c; row++)
+	{
+		should_add_row[row] = 1;
+	}
 
 	// find comparison attribute
-	_CD_Attribute *comparison_attribute;
+	for(uint64_t condition_index = 0; condition_index < condition_count; condition_index++)
 	{
-		CC_String comparison_attribute_name =
+		CD_Condition *condition = conditions + condition_index;
+		
+		CC_String condition_name = 
 		{
-			.data = comparison_name,
-			.length = strlen(comparison_name)
+			.data = condition->name,
+			.length = strlen(condition->name)
 		};
-		uint64_t *comparison_attribute_index = cc_hash_map_lookup(table->attribute_indices, comparison_attribute_name);
-		if (comparison_attribute_index == NULL)
+
+		const uint64_t *condition_attribute_index_ptr = (const uint64_t *)cc_hash_map_lookup(table->attribute_indices, condition_name);
+
+		if(condition_attribute_index_ptr == NULL)
 		{
-			_cd_make_error(CD_ERROR_ATTRIBUTE_DOES_NOT_EXIST, "Attribute '%s' does not exist in table '%s'", comparison_name, table->name.data);
+			_cd_make_error(CD_ERROR_ATTRIBUTE_DOES_NOT_EXIST, "Attribute '%s' does not exist in table '%s'", condition->name, table->name.data);
 			goto table_view_data_free;
 		}
-		comparison_attribute = table->attributes + *comparison_attribute_index;
-	}
 
-	uint64_t comparison_attribute_size = cd_attribute_size(comparison_attribute->type, comparison_attribute->count);
-	void *comparison_attribute_data = malloc(comparison_attribute_size);
+		uint64_t _error = 0;
 
-	for (uint64_t row = 0; row < table_count.count_c; row++)
-	{
-		if (!cf_file_view_read(table->data_view, row * table->stride + comparison_attribute->offset, comparison_attribute_size, comparison_attribute_data))
+		uint64_t condition_attribute_index = *condition_attribute_index_ptr;
+
+		_CD_Attribute *condition_attribute = table->attributes + condition_attribute_index;
+
+		uint64_t condition_attribute_size = cd_attribute_size(condition_attribute->type, condition_attribute->count);
+		void *condition_attribute_buffer = malloc(condition_attribute_size);
+
+		switch(condition->operator)
 		{
-			_cd_make_error(CD_ERROR_FILE, "Failed to read comparison attribute '%s' at row %llu from table '%s'", comparison_attribute->name, row, table->name.data);
-			goto comparison_attribute_data_free;
-		}
-
-		if (memcmp((uint8_t *)comparison_data, comparison_attribute_data, comparison_attribute_size) == 0)
+		case CD_CONDITION_OPERATOR_EQUALS:
 		{
-			if(table_view->count_c == table_view->count_m)
+			for(uint64_t row = 0; row < table_count.count_c; row++)
 			{
-				table_view->count_m += 32;
-				table_view->data = realloc(table_view->data, table_view->count_m * table_view->stride);
-			}
+				if(!should_add_row[row])
+					continue;
 
-			for (uint64_t i = 0; i < attribute_count; i++)
-			{
-				if (!cf_file_view_read(table->data_view, row * table->stride + attribute_data[i].file_offset, attribute_data[i].size, (uint8_t *)table_view->data + table_view->count_c * table_view->stride + attribute_data[i].data_offset))
+				if(!cf_file_view_read(table->data_view, row * table->stride + condition_attribute->offset, condition_attribute_size, condition_attribute_buffer))
 				{
-					_cd_make_error(CD_ERROR_FILE, "Failed to read attribute '%s' at row %llu from table '%s'", table_view->attributes[i].name, row, table->name.data);
-					goto comparison_attribute_data_free;
+					_cd_make_error(CD_ERROR_FILE, "Failed to read condition attribute '%s' at row %llu from table '%s'", condition_attribute->name, row, table->name.data);
+					_error = 1;
+					goto condition_attribute_buffer_free;
+				}
+
+				if(memcmp(condition_attribute_buffer, condition->data, condition_attribute_size) != 0)
+				{
+					should_add_row[row] = 0;
 				}
 			}
+			break;
+		}
+		case CD_CONDITION_OPERATOR_DIFFERENT:
+		{
+			for(uint64_t row = 0; row < table_count.count_c; row++)
+			{
+				if(!should_add_row[row])
+					continue;
 
-			table_view->count_c++;
+				if(!cf_file_view_read(table->data_view, row * table->stride + condition_attribute->offset, condition_attribute_size, condition_attribute_buffer))
+				{
+					_cd_make_error(CD_ERROR_FILE, "Failed to read condition attribute '%s' at row %llu from table '%s'", condition_attribute->name, row, table->name.data);
+					_error = 1;
+					goto condition_attribute_buffer_free;
+				}
+
+				if(memcmp(condition_attribute_buffer, condition->data, condition_attribute_size) == 0)
+				{
+					should_add_row[row] = 0;
+				}
+			}
+			break;
+		}
+		case CD_CONDITION_OPERATOR_BIGGER:
+		{
+			_cd_make_error(CD_ERROR_UNKNOWN_OPERATOR, "Operator %llu is not implemented yet. table: '%s'", condition->operator, table->name.data);
+			_error = 1;
+			goto condition_attribute_buffer_free;
+		}
+		case CD_CONDITION_OPERATOR_SMALLER:
+		{
+			_cd_make_error(CD_ERROR_UNKNOWN_OPERATOR, "Operator %llu is not implemented yet. table: '%s'", condition->operator, table->name.data);
+			_error = 1;
+			goto condition_attribute_buffer_free;
+		}
+		case CD_CONDITION_OPERATOR_CONTAINS:
+		{
+			_cd_make_error(CD_ERROR_UNKNOWN_OPERATOR, "Operator %llu is not implemented yet. table: '%s'", condition->operator, table->name.data);
+			_error = 1;
+			goto condition_attribute_buffer_free;
+		}
+		default:
+		{
+			_cd_make_error(CD_ERROR_UNKNOWN_OPERATOR, "Operator %llu is not recognized. table: '%s'", condition->operator, table->name.data);
+			_error = 1;
+			goto condition_attribute_buffer_free;
+		}
+		}
+
+	condition_attribute_buffer_free:
+		free(condition_attribute_buffer);
+		if (_error)
+		{
+			goto should_add_row_free;
 		}
 	}
 
-	free(comparison_attribute_data);
+	for(uint64_t row = 0; row < table_count.count_c; row++)
+	{
+		if (!should_add_row[row])
+			continue;
+
+		uint8_t *row_ptr = cd_table_view_get_next_row(table_view);
+		for(uint64_t attrib_index = 0; attrib_index < attribute_count; attrib_index++)
+		{
+			if(!cf_file_view_read(table->data_view, row * table->stride + attribute_data[attrib_index].file_offset, attribute_data[attrib_index].size, row_ptr + attribute_data[attrib_index].data_offset))
+			{
+				_cd_make_error(CD_ERROR_FILE, "Failed to read attribute '%s' at row %llu from table '%s'", attribute_names[attrib_index], row, table->name.data);
+				goto should_add_row_free;
+			}
+		}
+	}
+
+	free(should_add_row);
 
 	free(attribute_data);
 
 	return table_view;
 
-comparison_attribute_data_free:
-	free(comparison_attribute_data);
+should_add_row_free:
+	free(should_add_row);
 table_view_data_free:
 	free(table_view->data);
 table_view_attributes_free:
 	free(table_view->attributes);
-table_view_free:
+//table_view_free:
 	free(table_view);
-attribute_data_free:
+//attribute_data_free:
 	free(attribute_data);
 _return:
 	return NULL;
