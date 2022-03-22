@@ -10,18 +10,24 @@
 
 typedef enum CD_AttributeType
 {
-	CD_ATTRIBUTE_UINT_8,
-	CD_ATTRIBUTE_UINT_16,
-	CD_ATTRIBUTE_UINT_32,
-	CD_ATTRIBUTE_UINT_64,
-	CD_ATTRIBUTE_SINT_8,
-	CD_ATTRIBUTE_SINT_16,
-	CD_ATTRIBUTE_SINT_32,
-	CD_ATTRIBUTE_SINT_64,
-	CD_ATTRIBUTE_FLOAT,
-	CD_ATTRIBUTE_CHAR, // char is always the same length (ex: an id); no null termination
-	CD_ATTRIBUTE_VARCHAR // varchar can be different lengths but has the same max length; null termination
+	CD_TYPE_BYTE = 0, // 8 bit
+	CD_TYPE_UINT, // 64 bit
+	CD_TYPE_SINT, // 64 bit
+	CD_TYPE_FLOAT, // 64 bit
+	CD_TYPE_CHAR, // uses char 8 bit, char is always the same length (ex: an id); no null termination
+	CD_TYPE_WCHAR, // uses wchar_t which is 16 bit
+	CD_TYPE_VARCHAR, // uses char 8 bit, varchar can be different lengths but has the same max length; null termination
+	CD_TYPE_WVARCHAR // uses wchar_t which is 16 bit
 } CD_AttributeType;
+
+typedef uint8_t CD_byte_t;
+typedef uint64_t CD_uint_t;
+typedef int64_t CD_sint_t;
+typedef double CD_float_t;
+typedef char CD_char_t;
+typedef wchar_t CD_wchar_t;
+typedef char CD_varchar_t;
+typedef wchar_t CD_wvarchar_t;
 
 uint64_t cd_attribute_type_size(CD_AttributeType type);
 uint64_t cd_attribute_size(CD_AttributeType type, uint64_t count);
@@ -50,6 +56,7 @@ typedef struct CD_TableView
 	uint64_t stride;
 	uint64_t count_c;
 	uint64_t count_m;
+	uint64_t attribute_count;
 	CD_Attribute *attributes;
 	void *data;
 } CD_TableView;
@@ -58,6 +65,15 @@ CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64
 void cd_table_view_destroy(CD_TableView *view);
 
 void *cd_table_view_get_next_row(CD_TableView *view);
+
+typedef struct CD_TableView_Iterator
+{
+	const void *data;
+	const CD_Attribute *attribute;
+} CD_TableView_Iterator;
+CD_TableView_Iterator cd_table_view_iterator_begin(CD_TableView *view, uint64_t row);
+CD_TableView_Iterator cd_table_view_iterator_next(CD_TableView *view, uint64_t row, CD_TableView_Iterator iterator);
+uint64_t cd_table_view_iterator_is_end(CD_TableView *view, uint64_t row, CD_TableView_Iterator iterator);
 
 typedef enum CD_ConditionOperator
 {
@@ -94,7 +110,8 @@ typedef enum CD_ErrorType
 	CD_ERROR_ATTRIBUTE_DOES_NOT_EXIST,
 	CD_ERROR_ATTRIBUTE_IS_NOT_NULL,
 	CD_ERROR_ATTRIBUTE_IS_UNIQUE,
-	CD_ERROR_UNKNOWN_OPERATOR
+	CD_ERROR_UNKNOWN_OPERATOR,
+	CD_ERROR_UNKNOWN_TYPE
 } CD_ErrorType;
 
 CD_Error cd_get_last_error();

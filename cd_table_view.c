@@ -22,6 +22,7 @@ CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64
 	table_view->count_c = 0;
 	table_view->count_m = 32;
 	table_view->stride = 0;
+	table_view->attribute_count = attribute_count;
 	table_view->attributes = malloc(sizeof(table_view->attributes[0]) * attribute_count);
 	table_view->data = NULL;
 
@@ -90,4 +91,26 @@ void *cd_table_view_get_next_row(CD_TableView *table_view)
 	void *ptr = (uint8_t *)table_view->data + table_view->count_c * table_view->stride;
 	table_view->count_c++;
 	return ptr;
+}
+
+CD_TableView_Iterator cd_table_view_iterator_begin(CD_TableView *view, uint64_t row)
+{
+	CD_TableView_Iterator iterator =
+	{
+		.data = (uint8_t *)view->data + row * view->stride,
+		.attribute = view->attributes
+	};
+	return iterator;
+}
+
+CD_TableView_Iterator cd_table_view_iterator_next(CD_TableView *view, uint64_t row, CD_TableView_Iterator iterator)
+{
+	iterator.data = (uint8_t *)iterator.data + cd_attribute_size(iterator.attribute->type, iterator.attribute->count);
+	iterator.attribute++;
+	return iterator;
+}
+
+uint64_t cd_table_view_iterator_is_end(CD_TableView *view, uint64_t row, CD_TableView_Iterator iterator)
+{
+	return (iterator.data == (uint8_t *)view->data + (row + 1) * view->stride);
 }

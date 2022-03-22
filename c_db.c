@@ -814,7 +814,7 @@ CD_TableView *cd_table_select(CD_Database *db, CC_String table_name, uint64_t at
 					goto condition_attribute_buffer_free;
 				}
 
-				if(memcmp(condition_attribute_buffer, condition->data, condition_attribute_size) != 0)
+				if(!_cd_funcs_equal[condition_attribute->type](condition_attribute_buffer, condition->data, condition_attribute->count))
 				{
 					should_add_row[row] = 0;
 				}
@@ -835,7 +835,7 @@ CD_TableView *cd_table_select(CD_Database *db, CC_String table_name, uint64_t at
 					goto condition_attribute_buffer_free;
 				}
 
-				if(memcmp(condition_attribute_buffer, condition->data, condition_attribute_size) == 0)
+				if(_cd_funcs_equal[condition_attribute->type](condition_attribute_buffer, condition->data, condition_attribute->count))
 				{
 					should_add_row[row] = 0;
 				}
@@ -910,34 +910,4 @@ table_view_attributes_free:
 	free(attribute_data);
 _return:
 	return NULL;
-}
-
-uint64_t cd_attribute_type_size(CD_AttributeType type)
-{
-	switch (type)
-	{
-	case CD_ATTRIBUTE_UINT_8:
-	case CD_ATTRIBUTE_SINT_8:
-	case CD_ATTRIBUTE_CHAR:
-	case CD_ATTRIBUTE_VARCHAR:
-		return 1;
-	case CD_ATTRIBUTE_UINT_16:
-	case CD_ATTRIBUTE_SINT_16:
-		return 2;
-	case CD_ATTRIBUTE_UINT_32:
-	case CD_ATTRIBUTE_SINT_32:
-		return 4;
-	case CD_ATTRIBUTE_UINT_64:
-	case CD_ATTRIBUTE_SINT_64:
-	case CD_ATTRIBUTE_FLOAT:
-		return 8;
-	default:
-		printf("ERROR invalid type.\n");
-		return 0;
-	}
-}
-
-uint64_t cd_attribute_size(CD_AttributeType type, uint64_t count)
-{
-	return cd_attribute_type_size(type) * count;
 }

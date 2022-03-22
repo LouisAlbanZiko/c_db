@@ -57,6 +57,19 @@ typedef struct _CD_TableCount
 	uint64_t count_m;
 } _CD_TableCount;
 
+// type comparison
+typedef uint64_t (*_cd_func_equal)(const void *data1, const void *data2, uint64_t size);
+extern const _cd_func_equal _cd_funcs_equal[];
+
+uint64_t _cd_equal_BYTE(const void *data1, const void *data2, uint64_t size);
+uint64_t _cd_equal_UINT(const void *data1, const void *data2, uint64_t count);
+uint64_t _cd_equal_SINT(const void *data1, const void *data2, uint64_t count);
+uint64_t _cd_equal_FLOAT(const void *data1, const void *data2, uint64_t count);
+uint64_t _cd_equal_CHAR(const void *data1, const void *data2, uint64_t count);
+uint64_t _cd_equal_WCHAR(const void *data1, const void *data2, uint64_t count);
+uint64_t _cd_equal_VARCHAR(const void *data1, const void *data2, uint64_t count);
+uint64_t _cd_equal_WVARCHAR(const void *data1, const void *data2, uint64_t count);
+
 // error
 void _cd_make_error(uint64_t error_type, const char *format, ...);
 
