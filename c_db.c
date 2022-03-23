@@ -522,7 +522,7 @@ table_destroy_1:
 	return 0;
 }
 
-uint64_t cd_table_insert(CD_Database *db, CC_String _table_name, uint64_t attribute_count, const char *attribute_names[256], const void *data)
+uint64_t cd_table_insert(CD_Database *db, CC_String _table_name, uint64_t attribute_count, const char *attribute_names[], const void *data)
 {
 	uint64_t return_value = 0;
 
@@ -710,7 +710,18 @@ table_name_destroy:
 	return return_value;
 }
 
-CD_TableView *cd_table_select(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[256], uint64_t condition_count, CD_Condition *conditions)
+uint64_t cd_table_stride(CD_Database *db, CC_String table_name)
+{
+	CD_Table *table = (CD_Table *)cc_hash_map_lookup(db->tables, table_name);
+	if (table == NULL)
+	{
+		_cd_make_error(CD_ERROR_TABLE_DOES_NOT_EXIST, "Table '%s' does not exist.", table_name.data);
+		return 0;
+	}
+	return table->stride;
+}
+
+CD_TableView *cd_table_select(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[], uint64_t condition_count, CD_Condition *conditions)
 {
 	// get table
 	CD_Table *table = (CD_Table *)cc_hash_map_lookup(db->tables, table_name);

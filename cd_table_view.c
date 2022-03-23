@@ -1,6 +1,6 @@
 #include "internal.h"
 
-CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[256])
+CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[])
 {
 	// get table
 	CD_Table *table = (CD_Table *)cc_hash_map_lookup(db->tables, table_name);

@@ -36,20 +36,47 @@ uint64_t cd_attribute_size(CD_AttributeType type, uint64_t count);
 #define CD_CONSTRAINT_NOT_NULL	0b01
 #define CD_CONSTRAINT_UNIQUE	0b10
 
+#define CD_NAME_LENGTH 256
+
 typedef struct CD_Attribute
 {
+	const char *name;
 	uint64_t type;
 	uint64_t count;
 	uint64_t constraints;
-	char name[256];
 } CD_Attribute;
+
+typedef struct CD_AttributeEx
+{
+	char name[CD_NAME_LENGTH];
+	uint64_t type;
+	uint64_t count;
+	uint64_t constraints;
+	uint64_t offset;
+	uint64_t size;
+} CD_AttributeEx;
+
+uint64_t cd_database_create(const char *name);
+uint64_t cd_database_exists(const char *name);
 
 typedef struct CD_Database CD_Database;
 
-CD_Database *cd_database_open(CC_String name);
+CD_Database *cd_database_open(const char *name);
 void cd_database_close(CD_Database *db);
-uint64_t cd_table_create(CD_Database *db, CC_String table_name, uint64_t attribute_count, CD_Attribute *attributes);
-uint64_t cd_table_insert(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[256], const void *data);
+
+uint64_t cd_table_exists(CD_Database *db, const char *table_name);
+uint64_t cd_table_create(CD_Database *db, const char *table_name, uint64_t attribute_count, CD_Attribute attributes[]);
+
+typedef struct CD_Table CD_Table;
+
+CD_Table *cd_table_open(CD_Database *db, CC_String table_name);
+void cd_table_close(CD_Table *table);
+
+const CD_AttributeEx *cd_table_attribute(CD_Table *table, const char *attrib_name);
+uint64_t cd_table_stride(CD_Table *table);
+uint64_t cd_table_count(CD_Table *table);
+
+uint64_t cd_table_insert(CD_Table *table, uint64_t attribute_count, const char *attribute_names[], const void *data);
 
 typedef struct CD_TableView
 {
@@ -61,7 +88,7 @@ typedef struct CD_TableView
 	void *data;
 } CD_TableView;
 
-CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[256]);
+CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[]);
 void cd_table_view_destroy(CD_TableView *view);
 
 void *cd_table_view_get_next_row(CD_TableView *view);
@@ -91,7 +118,7 @@ typedef struct CD_Condition
 	const void *data;
 } CD_Condition;
 
-CD_TableView *cd_table_select(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[256], uint64_t condition_count, CD_Condition *conditions);
+CD_TableView *cd_table_select(CD_Table *table, uint64_t attribute_count, const char *attribute_names[], uint64_t condition_count, CD_Condition *conditions);
 
 // error
 typedef struct CD_Error
@@ -104,6 +131,8 @@ typedef enum CD_ErrorType
 {
 	CD_ERROR_NONE = 0,
 	CD_ERROR_FILE,
+	CD_ERROR_DATABASE_EXISTS,
+	CD_ERROR_DATABASE_DOES_NOT_EXIST,
 	CD_ERROR_TABLE_EXISTS,
 	CD_ERROR_TABLE_DOES_NOT_EXIST,
 	CD_ERROR_ATTRIBUTE_EXISTS,
