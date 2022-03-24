@@ -1,22 +1,7 @@
 #include "internal.h"
 
-CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[])
+CD_TableView *cd_table_view_create(CD_Table *table, uint64_t attribute_count, const char *attribute_names[])
 {
-	// get table
-	CD_Table *table = (CD_Table *)cc_hash_map_lookup(db->tables, table_name);
-	if (table == NULL)
-	{
-		_cd_make_error(CD_ERROR_TABLE_DOES_NOT_EXIST, "Table '%s' does not exist.", table_name.data);
-		goto _return;
-	}
-
-	_CD_TableCount table_count;
-	if (!cf_file_view_read(table->data_count_view, 0, sizeof(table_count), &table_count))
-	{
-		_cd_make_error(CD_ERROR_FILE, "Failed to read data count of table '%s'", table_name.data);
-		goto _return;
-	}
-
 	CD_TableView *table_view = malloc(sizeof(*table_view));
 
 	table_view->count_c = 0;
@@ -28,12 +13,9 @@ CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64
 
 	for (uint64_t attrib_index = 0; attrib_index < attribute_count; attrib_index++)
 	{
-		CC_String attrib_name =
-			{
-				.data = attribute_names[attrib_index],
-				.length = strlen(attribute_names[attrib_index])};
-
-		const uint64_t *index_ptr = (const uint64_t *)cc_hash_map_lookup(table->attribute_indices, attrib_name);
+		CC_String attrib_name = cc_string_create(attribute_names[attrib_index], 0);
+		const uint64_t *index_ptr = (const uint64_t *)cc_hash_map_lookup(table->schema->attribute_indices, attrib_name);
+		cc_string_destroy(attrib_name);
 
 		if (index_ptr == NULL)
 		{
@@ -43,13 +25,15 @@ CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64
 
 		uint64_t index = *index_ptr;
 
-		_CD_Attribute *table_attribute = table->attributes + index;
+		CD_AttributeEx *table_attribute = table->schema->attributes + index;
 
+		memset(table_view->attributes[attrib_index].name, 0, 256);
+		strcpy_s(table_view->attributes[attrib_index].name, 256, table_attribute->name);
 		table_view->attributes[attrib_index].count = table_attribute->count;
 		table_view->attributes[attrib_index].type = table_attribute->type;
 		table_view->attributes[attrib_index].constraints = table_attribute->constraints;
-		memset(table_view->attributes[attrib_index].name, 0, 256);
-		strcpy_s(table_view->attributes[attrib_index].name, 256, table_attribute->name);
+		table_view->attributes[attrib_index].offset = table_view->stride;
+		table_view->attributes[attrib_index].size = table_attribute->size;
 
 		table_view->stride += cd_attribute_size(table_attribute->type, table_attribute->count);
 	}
@@ -61,7 +45,7 @@ CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64
 	// errors
 table_destroy:
 	cd_table_view_destroy(table_view);
-_return:
+//_return:
 	return NULL;
 }
 
@@ -105,7 +89,7 @@ CD_TableView_Iterator cd_table_view_iterator_begin(CD_TableView *view, uint64_t 
 
 CD_TableView_Iterator cd_table_view_iterator_next(CD_TableView *view, uint64_t row, CD_TableView_Iterator iterator)
 {
-	iterator.data = (uint8_t *)iterator.data + cd_attribute_size(iterator.attribute->type, iterator.attribute->count);
+	iterator.data = (uint8_t *)iterator.data + iterator.attribute->size;
 	iterator.attribute++;
 	return iterator;
 }

@@ -69,10 +69,11 @@ uint64_t cd_table_create(CD_Database *db, const char *table_name, uint64_t attri
 
 typedef struct CD_Table CD_Table;
 
-CD_Table *cd_table_open(CD_Database *db, CC_String table_name);
+CD_Table *cd_table_open(CD_Database *db, const char *table_name);
 void cd_table_close(CD_Table *table);
 
-const CD_AttributeEx *cd_table_attribute(CD_Table *table, const char *attrib_name);
+const CD_AttributeEx *cd_table_attribute_by_name(CD_Table *table, const char *attrib_name);
+const CD_AttributeEx *cd_table_attribute_by_index(CD_Table *table, uint64_t index);
 uint64_t cd_table_stride(CD_Table *table);
 uint64_t cd_table_count(CD_Table *table);
 
@@ -84,11 +85,11 @@ typedef struct CD_TableView
 	uint64_t count_c;
 	uint64_t count_m;
 	uint64_t attribute_count;
-	CD_Attribute *attributes;
+	CD_AttributeEx *attributes;
 	void *data;
 } CD_TableView;
 
-CD_TableView *cd_table_view_create(CD_Database *db, CC_String table_name, uint64_t attribute_count, const char *attribute_names[]);
+CD_TableView *cd_table_view_create(CD_Table *table, uint64_t attribute_count, const char *attribute_names[]);
 void cd_table_view_destroy(CD_TableView *view);
 
 void *cd_table_view_get_next_row(CD_TableView *view);
@@ -96,7 +97,7 @@ void *cd_table_view_get_next_row(CD_TableView *view);
 typedef struct CD_TableView_Iterator
 {
 	const void *data;
-	const CD_Attribute *attribute;
+	const CD_AttributeEx *attribute;
 } CD_TableView_Iterator;
 CD_TableView_Iterator cd_table_view_iterator_begin(CD_TableView *view, uint64_t row);
 CD_TableView_Iterator cd_table_view_iterator_next(CD_TableView *view, uint64_t row, CD_TableView_Iterator iterator);
@@ -113,7 +114,7 @@ typedef enum CD_ConditionOperator
 
 typedef struct CD_Condition
 {
-	char name[256];
+	const char *name;
 	uint64_t operator;
 	const void *data;
 } CD_Condition;

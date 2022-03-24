@@ -8,16 +8,26 @@
 // file data structs
 typedef struct _CD_File_TableSchema
 {
-	char name[256];
+	char name[CD_NAME_LENGTH];
 	uint64_t attrib_count_c;
 	uint64_t attrib_count_m;
 } _CD_File_TableSchema;
 
-typedef struct _CD_File_TableCount
+#define CD_ROW_COUNT_START 32
+
+typedef struct _CD_File_RowCount
 {
 	uint64_t count_c;
 	uint64_t count_m;
-} _CD_File_TableCount;
+} _CD_File_RowCount;
+
+typedef struct _CD_File_Attribute
+{
+	char name[CD_NAME_LENGTH];
+	uint64_t type;
+	uint64_t count;
+	uint64_t constraints;
+} _CD_File_Attribute;
 
 // structs
 typedef struct CD_TableSchema
@@ -32,14 +42,14 @@ typedef struct CD_Table
 	CC_String name;
 	CC_String file_path;
 
-	_CD_File_TableCount count;
+	_CD_File_RowCount count;
 
 	// schema
-	CD_TableSchema *schema;
+	const CD_TableSchema *schema;
 
 	// data views
-	CF_File *data_file;
-	CF_FileView *data_count_view;
+	CF_File *file;
+	CF_FileView *count_view;
 	CF_FileView *data_view;
 } CD_Table;
 

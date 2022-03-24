@@ -70,7 +70,7 @@ schema_file_close:
 	cf_file_close(schema_file);
 schema_file_path_destroy:
 	cc_string_destroy(schema_file_path);
-db_name_destroy:
+//db_name_destroy:
 	cc_string_destroy(db_name);
 
 	return return_value;
@@ -157,7 +157,7 @@ CD_Database *cd_database_open(const char *name)
 			goto table_data_view_close;
 		}
 
-		CF_FileView *table_attributes_view = cf_file_view_open(schema_file, table_offset + sizeof(file_table_schema), file_table_schema.attrib_count_c * sizeof(CD_Attribute));
+		CF_FileView *table_attributes_view = cf_file_view_open(schema_file, table_offset + sizeof(file_table_schema), file_table_schema.attrib_count_c * sizeof(_CD_File_Attribute));
 		if (table_attributes_view == NULL)
 		{
 			_cd_make_error(CD_ERROR_FILE, "Failed to open table_attributes_view of schema at index %d for file '%s'", table_index, schema_file_path.data);
@@ -174,7 +174,7 @@ CD_Database *cd_database_open(const char *name)
 
 		for(uint64_t attrib_index = 0; attrib_index < file_table_schema.attrib_count_c; attrib_index++)
 		{
-			CD_Attribute file_attribute;
+			_CD_File_Attribute file_attribute;
 
 			if (!cf_file_view_read(table_attributes_view, attrib_index * sizeof(file_attribute), sizeof(file_attribute), &file_attribute))
 			{
@@ -203,7 +203,7 @@ CD_Database *cd_database_open(const char *name)
 			schema.stride += attribute->size;
 		}
 
-		table_offset += sizeof(file_table_schema) + file_table_schema.attrib_count_m * sizeof(CD_Attribute);
+		table_offset += sizeof(file_table_schema) + file_table_schema.attrib_count_m * sizeof(_CD_File_Attribute);
 
 		// insert schema into hash map
 		{
@@ -271,4 +271,6 @@ void cd_database_close(CD_Database *db)
 
 	cf_file_view_close(db->schema_count_view);
 	cf_file_close(db->schema_file);
+
+	free(db);
 }
